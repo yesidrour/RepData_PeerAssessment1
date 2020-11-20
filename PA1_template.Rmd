@@ -12,7 +12,6 @@ library(ggplot2)
 ```
 
 
-
 ## Loading and Preprocessing the Data
 
 ```{r loading data, echo=TRUE}

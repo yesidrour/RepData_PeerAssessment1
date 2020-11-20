@@ -1,25 +1,107 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Report"
+author: "Yesid Rodriguez"
+date: "11/19/2020"
+output: html_document
 ---
 
-
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
+```{r libraries, echo=TRUE}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+```
 
 
 
-## Imputing missing values
+## Loading and Preprocessing the Data
+
+```{r loading data, echo=TRUE}
+data <- read.csv("activity.csv")
+```
+
+## Report on Mean and Steps Taken Per Day
+
+### Histogram of Number of Steps Taken Each Day
+
+```{r histogram, echo=TRUE}
+hist(data$steps[!is.na(data$steps)], main = "Frequency Of Steps Taken", xlab = "Steps/day")
+```
+
+### Mean and Median of Steps Taken Daily
+
+
+```{r stats, echo=TRUE}
+avg = mean(data$steps, na.rm = TRUE)
+mdn = median(data$steps, na.rm = TRUE)
+```
+The mean of steps taken daily is: `r avg` and the mean is: `r mdn`
+
+
+## Average Daily Activity Pattern
+
+```{r timeseries, echo=TRUE}
+data_avg = data %>% 
+  select(steps, interval) %>%
+  group_by(interval) %>%
+  summarize(AvgStep = mean(steps, na.rm = TRUE)) %>%
+  data.frame
+
+plot(data_avg$interval, data_avg$AvgStep, type = "l", main = "Average Daily Activity Pattern", 
+     xlab = "5-minute interval",  ylab = "Average Number of Steps taken")
+
+```
+
+
+### Maximum Number of Steps by Minute Interval
+
+
+```{r avgInterval, echo=TRUE}
+maximum <- max(data_avg$AvgStep)
+interval <- data_avg$interval[data_avg$AvgStep ==  max(data_avg$AvgStep)]
+```
+
+The 5-minute interval with the maximum number of steps taken daily on average is: `r interval` and the maximum is: `r maximum`
+
+## Missing Values
+
+### Total Number of Missing Values Across All Days
+
+```{r daysNas, echo=TRUE}
+missingDaily = sum(is.na(data$steps))
+```
+
+The total number of missing values across all days is: `r missingDaily`
+
+### Filling for Missing Values
+
+
+```{r fillMissing, echo=TRUE}
+new_data <- data
+new_data$steps[is.na(new_data$steps)] <- with(data_avg, AvgStep[match(new_data$interval, interval)])
+```
+
+## Figures Without Missing Values
+
+
+```{r completeFigures, echo=TRUE}
+complete_avg = mean(new_data$steps)
+complete_mdn = median(new_data$steps)
+hist(new_data$steps, main = "Frequency Of Steps Taken \nMissing Values Filled", xlab = "Steps/day")
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+The mean and median without missing values of steps taken daily are: `r complete_avg` and `r complete_mdn` respectively. It can be seen that filling for missing values doesn't chage these values from the ones estimated before.
+
+## Differences in Activity Patterns Between Weekdays and Weekends
+
+```{r differences, echo=TRUE}
+new_data$date <- ymd(new_data$date)
+new_data <- mutate(new_data, Factors = weekdays(date))
+new_data$Factors  <- ifelse(new_data$Factors %in% c("Saturday", "Sunday"), "Weekends", "Weekdays")
+new_data$Factos <- factor(new_data$Factors)
+theme_set(theme_bw())
+qplot(x=interval, y=steps, data= new_data, facets= Factors~.,
+  xlab="Interval", ylab="Number of Steps", geom = "line")
+```
